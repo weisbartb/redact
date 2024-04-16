@@ -1,0 +1,68 @@
+package internal
+
+import (
+	"github.com/stretchr/testify/require"
+	"testing"
+)
+
+func TestInstructionScanner_Scan(t *testing.T) {
+	t.Run("basic instructions", func(t *testing.T) {
+		scanner := NewInstructionScanner("~[admin,csr]=star(4)")
+		scanner.Scan()
+		require.Equal(t, opCodeSet, scanner.firstOp.opCode)
+		require.True(t, scanner.firstOp.inverse)
+		require.Equal(t, 2, len(scanner.firstOp.children))
+		require.Equal(t, opCodeString, scanner.firstOp.children[0].opCode)
+		require.False(t, scanner.firstOp.children[0].inverse)
+		require.Equal(t, "admin", scanner.firstOp.children[0].value)
+		require.Equal(t, opCodeString, scanner.firstOp.children[1].opCode)
+		require.False(t, scanner.firstOp.children[1].inverse)
+		require.Equal(t, "csr", scanner.firstOp.children[1].value)
+		require.Equal(t, opCodeRun, scanner.firstOp.next.opCode)
+		require.Equal(t, opCodeString, scanner.firstOp.next.next.opCode)
+		require.Equal(t, "star", scanner.firstOp.next.next.value)
+		require.Equal(t, opCodeParams, scanner.firstOp.next.next.next.opCode)
+		require.Equal(t, opCodeInt, scanner.firstOp.next.next.next.children[0].opCode)
+		require.Equal(t, 4, scanner.firstOp.next.next.next.children[0].value)
+		require.Equal(t, scanner.currentOp, scanner.firstOp.next.next.next)
+		require.Nil(t, scanner.firstOp.next.next.next.next)
+	})
+	t.Run("mixed instructions", func(t *testing.T) {
+		scanner := NewInstructionScanner("[~admin,csr]=star(4)")
+		scanner.Scan()
+		require.Equal(t, opCodeSet, scanner.firstOp.opCode)
+		require.False(t, scanner.firstOp.inverse)
+		require.Equal(t, 2, len(scanner.firstOp.children))
+		require.Equal(t, opCodeString, scanner.firstOp.children[0].opCode)
+		require.Equal(t, "admin", scanner.firstOp.children[0].value)
+		require.True(t, scanner.firstOp.children[0].inverse)
+		require.Equal(t, opCodeString, scanner.firstOp.children[1].opCode)
+		require.Equal(t, "csr", scanner.firstOp.children[1].value)
+		require.False(t, scanner.firstOp.children[1].inverse)
+		require.Equal(t, opCodeRun, scanner.firstOp.next.opCode)
+		require.Equal(t, opCodeString, scanner.firstOp.next.next.opCode)
+		require.Equal(t, "star", scanner.firstOp.next.next.value)
+		require.Equal(t, opCodeParams, scanner.firstOp.next.next.next.opCode)
+		require.Equal(t, opCodeInt, scanner.firstOp.next.next.next.children[0].opCode)
+		require.Equal(t, 4, scanner.firstOp.next.next.next.children[0].value)
+		require.Equal(t, scanner.currentOp, scanner.firstOp.next.next.next)
+		require.Nil(t, scanner.firstOp.next.next.next.next)
+	})
+	t.Run("chained instructions", func(t *testing.T) {
+		scanner := NewInstructionScanner("[~admin,csr]=star(4)|[user]=remove")
+		scanner.Scan()
+		require.Equal(t, opCodeSet, scanner.firstOp.opCode)
+		require.Equal(t, opCodeString, scanner.firstOp.children[0].opCode)
+		require.Equal(t, opCodeString, scanner.firstOp.children[1].opCode)
+		require.Equal(t, opCodeRun, scanner.firstOp.next.opCode)
+		require.Equal(t, opCodeString, scanner.firstOp.next.next.opCode)
+		require.Equal(t, opCodeParams, scanner.firstOp.next.next.next.opCode)
+		require.Equal(t, opCodeInt, scanner.firstOp.next.next.next.children[0].opCode)
+		require.Equal(t, opCodeChain, scanner.firstOp.next.next.next.next.opCode)
+		require.Equal(t, opCodeSet, scanner.firstOp.next.next.next.next.next.opCode)
+		require.Equal(t, opCodeRun, scanner.firstOp.next.next.next.next.next.next.opCode)
+		require.Equal(t, opCodeString, scanner.firstOp.next.next.next.next.next.next.next.opCode)
+		require.Equal(t, scanner.currentOp, scanner.firstOp.next.next.next.next.next.next.next)
+	})
+
+}
