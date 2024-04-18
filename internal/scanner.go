@@ -7,11 +7,6 @@ import (
 	"strings"
 )
 
-const (
-	ReservedGroupAll  = "all"
-	ReservedGroupNone = "none"
-)
-
 type scanner struct {
 	instruction []byte
 	pos         int
